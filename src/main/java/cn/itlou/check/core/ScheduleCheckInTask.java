@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 定时打卡任务
@@ -40,25 +40,44 @@ public class ScheduleCheckInTask {
     JavaMailSender javaMailSender;
 
     @RequestMapping("check")
-    @Scheduled(cron = "0 0 8 * * ?")
-    public void checkIn() {
+    @Scheduled(cron = "0 0 7 * * ?")
+    public void checkIn() throws InterruptedException {
         List<String> checkInSuccessName = Lists.newArrayList();
         List<String> checkInFailName = Lists.newArrayList();
-
-        for (Map.Entry<String, String> entry : checkInMap.entrySet()) {
-            String response = SimplePostJieLongCheckIn.checkIn(entry.getKey(), entry.getValue());
-            if (!Strings.isNullOrEmpty(response)) {
-                JSONObject resultJson = JSON.parseObject(response);
-                if ("000001".equals(resultJson.getString("Type")) && "打卡成功".equals(resultJson.getString("Data"))) {
-                    checkInSuccessName.add(entry.getKey());
-                } else if ("000000".equals(resultJson.getString("Type"))) {
-                    checkInFailName.add(entry.getKey() + ": " + resultJson.getString("Data") + "\n");
+        DelayQueue<DelayCheckInUser> delayCheckInUsers = randomCheckIn();
+        while (delayCheckInUsers.size() != 0) {
+            DelayCheckInUser peek = delayCheckInUsers.poll();
+            if (peek != null) {
+                String name = peek.getName();
+                String response = SimplePostJieLongCheckIn.checkIn(name, checkInMap.get(name));
+                if (!Strings.isNullOrEmpty(response)) {
+                    JSONObject resultJson = JSON.parseObject(response);
+                    if ("000001".equals(resultJson.getString("Type")) && "打卡成功".equals(resultJson.getString("Data"))) {
+                        checkInSuccessName.add(name);
+                    } else if (!"000001".equals(resultJson.getString("Type"))) {
+                        checkInFailName.add(name + ": " + resultJson.getString("Data") + "\n");
+                    }
                 }
             }
+            Thread.sleep(5000L);
         }
         String nameSuccess = Joiner.on(",").skipNulls().join(checkInSuccessName);
         String nameFail = Joiner.on(",").skipNulls().join(checkInFailName);
         sendMail(nameSuccess, nameFail);
+    }
+
+    /**
+     * 添加时间段内随机时间打卡
+     */
+    private DelayQueue<DelayCheckInUser> randomCheckIn() {
+        DelayQueue<DelayCheckInUser> queue = new DelayQueue<>();
+        for (String name : checkInMap.keySet()) {
+            Random random = new Random();
+            int delaySecond = random.nextInt(60 * 90);
+            log.info("{} delay check in time {} seconds", name, delaySecond);
+            queue.put(new DelayCheckInUser(name, delaySecond, TimeUnit.SECONDS));
+        }
+        return queue;
     }
 
     private void sendMail(String successName, String failNameAndMsg) {
