@@ -7,6 +7,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -30,10 +31,12 @@ import java.util.concurrent.TimeUnit;
 @RestController
 public class ScheduleCheckInTask {
 
-    private static final Map<String, String> checkInMap = Maps.newHashMap();
+    public static final Map<String, String> checkInMap = Maps.newHashMap();
+    public static final Map<String, String> emailMap = Maps.newHashMap();
 
     static {
         checkInMap.put("苑雨楼", "Bearer xxxxvRTVoQxxRmtlcUl4aFZrIixxpLmpxxxxCI6MTY0MxxIjoxNjQyOTk4NjI0xxx7ZNYQE1M9xxxYw");
+        emailMap.put("苑雨楼", "xxxxxxxxx@qq.com");
     }
 
     @Resource
@@ -84,10 +87,12 @@ public class ScheduleCheckInTask {
         log.info("start to send mail......");
         SimpleMailMessage message = new SimpleMailMessage();
         message.setSubject("接龙管家每日打卡");
-        String from = new String(("接龙管家打卡机器人 <xxxxxxx@qq.com>").getBytes(StandardCharsets.UTF_8));
+        String from = new String(("接龙管家打卡机器人 <xxxxxxxxxx@qq.com>").getBytes(StandardCharsets.UTF_8));
         message.setFrom(from);
-        message.setTo("xxxxxx@qq.com");
-        message.setCc("xxxxxx@qq.com");
+        Set<String> toList = Sets.newHashSet();
+        toList.addAll(emailMap.values());
+        String[] strings = toList.toArray(new String[]{});
+        message.setTo(strings);
         message.setSentDate(new Date());
         String prefix = "以下成员今日打卡成功: \n      ";
         if (!Strings.isNullOrEmpty(failNameAndMsg)) {
