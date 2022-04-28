@@ -1,20 +1,19 @@
 package cn.itlou.check.core;
 
+import cn.itlou.check.entity.UserInfo;
+import cn.itlou.check.repo.UserInfoRepository;
 import cn.itlou.check.util.TokenUtil;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.RestController;
-import sun.misc.BASE64Decoder;
 
 import javax.annotation.Resource;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.Map;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -22,20 +21,22 @@ public class ScheduleOverdueTokenCheckTask {
 
     @Resource
     JavaMailSender javaMailSender;
+    @Resource
+    UserInfoRepository userInfoRepository;
 
     // 每天下午五点校验token是否过期
     @Scheduled(cron = "0 0 17 * * ?")
     public void checkOverdueToken() {
         log.info("start to check overdue token......");
-        Map<String, String> map = ScheduleCheckInTask.checkInMap;
-        for (Map.Entry<String, String> entry : map.entrySet()) {
-            String name = entry.getKey();
-            JSONObject userInfo = TokenUtil.parseToken2Json(entry.getValue());
-            Long exp = userInfo.getLong("exp");
+        List<UserInfo> userInfos = userInfoRepository.findAll();
+        for (UserInfo userInfo : userInfos) {
+            String name = userInfo.getCheckName();
+            JSONObject userInfoJson = TokenUtil.parseToken2Json(userInfo.getToken());
+            Long exp = userInfoJson.getLong("exp");
             Long current = System.currentTimeMillis() / 1000;
             // token已过期
             if (current - exp >= 0) {
-                sendOverdueMail(name, ScheduleCheckInTask.emailMap.get(name));
+                sendOverdueMail(name, userInfo.getEmailAddress());
             }
         }
     }
