@@ -20,13 +20,12 @@ import java.nio.charset.StandardCharsets;
 @Slf4j
 public class SimplePostJieLongCheckIn {
 
-    private static final String JIE_LONG_URL = "https://api.jielong.co/api/Thread/EditCheckInRecord";
     private static final int THREAD_ID = 12345678;
 
-    public static String checkIn(String name, String authorization) {
+    public static String checkIn(String url, String name, String authorization) {
         log.info("request jielongguanjia to checkin name is: {}", name);
         CloseableHttpClient client = HttpClients.createDefault();
-        HttpPost post = new HttpPost(JIE_LONG_URL);
+        HttpPost post = new HttpPost(url);
         try {
             post.addHeader("Content-Type", "application/json");
             post.addHeader("Accept", "*/*");
@@ -38,7 +37,7 @@ public class SimplePostJieLongCheckIn {
             post.setEntity(stringEntity);
             HttpResponse response = client.execute(post);
             String responseStr = EntityUtils.toString(response.getEntity());
-            log.info("request jielongguanjia result: {}\n", responseStr);
+            log.info("request jielongguanjia result: {}", responseStr);
             return responseStr;
         } catch (IOException e) {
             e.printStackTrace();

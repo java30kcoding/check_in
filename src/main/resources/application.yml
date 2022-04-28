@@ -12,3 +12,43 @@ spring:
         smtp:
           socketFactoryClass: javax.net.ssl.SSLSocketFactory
         debug: false
+  thymeleaf:
+    prefix: classpath:/static/
+    suffix: .html
+    mode: HTML5
+    encoding: UTF-8
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.H2Dialect
+  datasource:
+    driverClassName: org.h2.Driver
+#    url: jdbc:h2:mem:test
+    url: jdbc:h2:file:/xxx;DB_CLOSE_DELAY=-1;
+    username: sa
+    password: Cp5Q&^8Pad!UUa$N
+  h2:
+    console:
+      settings:
+        web-allow-others: true
+      path: /h2
+      enabled: true
+  flyway:
+#    schemas: sa
+    # flyway自动配置 true 开启
+    enabled: true
+    #设定 SQL 脚本的目录,多个路径使用逗号分隔, 比如取值为 classpath:db/migration,filesystem:/sql-migrations
+    locations: classpath:/db/migration
+    # 如果数据库不是空表，需要设置成 true，否则启动报错
+    baseline-on-migrate: true
+    # 与 baseline-on-migrate: true 搭配使用
+    encoding: UTF-8
+    # 开发环境最好开启 outOfOrder, 生产环境关闭 outOfOrder .
+    out-of-order: false
+    # 禁止清理数据库表
+    clean-disabled: true
+    # 校验
+    validate-on-migrate: true
+    # 版本控制日志表，默认flyway_schema_history,不同系统建议修改改数据
+    table: flyway_schema_history

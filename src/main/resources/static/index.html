@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>接龙管家</title>
+    <style>
+        .warp{
+            text-align: center;
+        }
+        .input_val input{
+            height: 20px;
+            width: 200px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="warp">
+    <img src="" id="img"/>
+    <div class="input_val">
+        <label>name:</label>
+        <input id="name"/>
+        <br />
+        <label>email:</label>
+        <input id="email"/>
+    </div>
+</div>
+<script src="http://code.jquery.com/jquery-latest.js"></script>
+<script type="text/javascript">
+		var pollingTask = null;	// 获取登陆状态定时器
+
+		function getParams(){
+			var search = window.location.search.slice(1)
+			var searchList = search.split('&') || []
+			var obj = {}
+			searchList.forEach(itm=>{
+				var [key,value] = itm.split('=')
+				obj[key] = value
+			})
+			return obj
+		}
+
+		function generateMixed(n){
+			var chars = ["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","a","b","c", "d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"];
+			var res = "";
+			for (var i = 0; i < n; i++) {
+				var id = Math.floor(Math.random() * 62);
+				res += chars[id];
+			}
+			return res;
+		}
+
+		var { name, email } = getParams()
+		if(!name || !email){
+			alert('url中请带上name，例如：http://127.0.0.1?name=xxx')
+		}else{
+			var key = generateMixed(24) // // 当前登陆唯一值key,生成24位随机数
+			setNameAndEmail(name, email)
+			setImgURL(key)
+			loopTask(key)
+		}
+
+		function setNameAndEmail(name, email){
+			$('#name').val(decodeURIComponent(name))
+			$('#email').val(email)
+		}
+
+		function getNameAndEmail(){
+			return [$('#name').val(),$('#email').val()]
+		}
+
+		function setImgURL(key){
+			var src = `/Portal/GetWXQRCode?key=${key}&returnUrl=`
+			$('#img').attr('src', src)
+		}
+
+		function loopTask(key){
+			// 获取登录状态
+			pollingTask = setInterval(()=>{
+				pollingStatus(key)
+			}, 1500);
+		}
+
+		function pollingStatus(key){
+			$.ajax({
+				url:`/Portal/CheckLoginStatus?key=${key}`,
+				success:function (data) {
+					if (data == 2) {
+						clearInterval(pollingTask);
+						login()
+					}
+				},
+				error
+			})
+		}
+
+		function login(){
+			var [name, email] = getNameAndEmail()
+			console.log(name,email)
+			$.ajax({
+				url:`/login?key=${key}&name=${name}&email=${email}`,
+				success:function(res){
+					if(res){
+						checkTokenTime(name)
+					}
+				},
+				error
+			})
+		}
+
+		function checkTokenTime(){
+			$.ajax({
+				url:`/checkTokenTime?name=${name}`,
+				success:function(res){
+					alert(res)
+				},
+				error
+			})
+		}
+
+		function error(){
+			alert('更新失败，重试一下')
+		}
+
+
+    </script>
+</body>
+</html>
